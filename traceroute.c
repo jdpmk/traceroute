@@ -1,7 +1,22 @@
 #include <stdio.h>
+#include <stdlib.h>
 
-int main(void)
+void usage(void);
+
+int main(int argc, char **argv)
 {
-    printf("Hello, World!\n");
+    if (argc != 2) {
+        usage();
+        exit(1);
+    }
+
+    const char *host = argv[1];
+    (void) host;
+
     return 0;
+}
+
+void usage(void)
+{
+    fprintf(stderr, "usage: traceroute [host]\n");
 }
