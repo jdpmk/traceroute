@@ -1,7 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
+#include <arpa/inet.h>
 #include <netdb.h>
 #include <netinet/ip_icmp.h>
 #include <sys/errno.h>
@@ -9,6 +11,7 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
+double time_now_ms(void);
 void usage(void);
 
 int main(int argc, char **argv)
@@ -62,12 +65,14 @@ int main(int argc, char **argv)
         perror("send");
         exit(1);
     }
+    double send_ms = time_now_ms();
 
     char buf[512];
     if (recv(rfd, buf, sizeof(buf), 0) == -1) {
-        perror("recvfrom");
+        perror("recv");
         exit(1);
     }
+    double recv_ms = time_now_ms();
 
     struct ip *ip_hdr = (struct ip *) buf;
     // IP header length in 32-bit words. See ip(4).
@@ -78,13 +83,26 @@ int main(int argc, char **argv)
     u_char code = icmp_hdr->icmp_code;
 
     if (type == ICMP_TIMXCEED && code == ICMP_TIMXCEED_INTRANS) {
-        // TODO: print time taken for hop
+        const char *src_addr = inet_ntoa(ip_hdr->ip_src);
+        double rtt_ms = (recv_ms - send_ms) / 2;
+        printf("%s %f\n", src_addr, rtt_ms);
     }
 
     close(sfd);
     close(rfd);
 
     return 0;
+}
+
+double time_now_ms(void)
+{
+    struct timespec tp;
+    if (clock_gettime(CLOCK_REALTIME, &tp) == -1) {
+        perror("clock_gettime");
+        exit(1);
+    }
+
+    return (double) tp.tv_sec * 1e3 + (double) tp.tv_nsec * 1e-6;
 }
 
 void usage(void)
