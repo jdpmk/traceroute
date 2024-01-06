@@ -11,8 +11,8 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
-#define TR_LINE_FMT "%-15s %-20s %-20s\n"
-#define MAX_TTL 10  // representing the maximum no. of network hops (IP_TTL)
+#define TR_LINE_FMT "%-5s %-60s %-20s\n"
+#define MAX_TTL 64  // representing the maximum no. of network hops (IP_TTL)
 
 double time_now_ms(void);
 void usage(void);
@@ -57,13 +57,15 @@ int main(int argc, char **argv)
 
     printf("traceroute to %s, (%d hops max)\n", host, MAX_TTL);
     printf(TR_LINE_FMT, "Hop", "IP", "Time (ms)");
+    printf(TR_LINE_FMT, "---", "--", "---------");
 
-    for (int ttl = 1; ttl < MAX_TTL; ++ttl) {
+    for (int ttl = 1; ttl <= MAX_TTL; ++ttl) {
         if (setsockopt(sfd, IPPROTO_IP, IP_TTL, &ttl, sizeof(ttl)) == -1) {
             perror("setsockopt");
             exit(1);
         }
 
+        // TODO: Implement retries.
         char probe = '\0';
         if (send(sfd, &probe, sizeof(probe), 0) == -1) {
             perror("send");
@@ -88,18 +90,42 @@ int main(int argc, char **argv)
         u_char code = icmp_hdr->icmp_code;
 
         if (type == ICMP_TIMXCEED && code == ICMP_TIMXCEED_INTRANS) {
-            const char *src_addr = inet_ntoa(ip_hdr->ip_src);
-            double latency_ms = (recv_ms - send_ms) / 2;
-
             char hop_str[255] = {0};
+            char ip_str[255] = {0};
             char latency_ms_str[255] = {0};
 
+            // Hop number is the same as current IP TTL.
             sprintf(hop_str, "%d", ttl);
+
+            // Latency: RTT / 2
+            double latency_ms = (recv_ms - send_ms) / 2;
             sprintf(latency_ms_str, "%f", latency_ms);
 
-            printf(TR_LINE_FMT, hop_str, src_addr, latency_ms_str);
+            // Also display name of this hop.
+            const char *hop_addr = inet_ntoa(ip_hdr->ip_src);
 
-            if (strcmp(src_addr, host) == 0) {
+            struct in_addr ip;
+            struct hostent *he;
+            if (inet_aton(hop_addr, &ip) == 0) {
+                fprintf(stderr,
+                        "ERROR: unable to interpret %s as an IP address",
+                        hop_addr);
+                exit(1);
+            }
+
+            // NULL on error, in which case we don't print the hostname.
+            he = gethostbyaddr(&ip, sizeof(ip), AF_INET);
+            if (he) {
+                sprintf(ip_str, "%s (%s)", hop_addr, he->h_name);
+            } else {
+                sprintf(ip_str, "%s", hop_addr);
+            }
+
+            // Log this hop.
+            printf(TR_LINE_FMT, hop_str, ip_str, latency_ms_str);
+
+            // Reached destination.
+            if (strcmp(hop_addr, host) == 0) {
                 break;
             }
         }
