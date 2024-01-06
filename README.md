@@ -1,4 +1,4 @@
-# tracecroute
+# traceroute
 
 An implementation of [traceroute](https://en.wikipedia.org/wiki/Traceroute), a
 program which exceeds the IP TTL at consecutive hops through the network and
