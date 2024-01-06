@@ -22,6 +22,15 @@ Hop   IP                                                           Time (ms)
 7     93.184.216.34                                                131.640991
 ```
 
+### Build
+
+This has currently only been tested on macOS. Requires `gcc` and makes use of
+the Berkeley sockets API.
+
+```sh
+$ ./build.sh
+```
+
 ### Resources
 - [traceroute(8)](https://linux.die.net/man/8/traceroute)
 - [Apple traceroute.c](https://opensource.apple.com/source/network_cmds/network_cmds-77/traceroute.tproj/traceroute.c.auto.html)
