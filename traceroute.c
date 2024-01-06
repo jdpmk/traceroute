@@ -1,3 +1,6 @@
+// Joydeep Mukherjee
+// See LICENSE.md.
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -11,8 +14,8 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
-#define TR_LINE_FMT "%-5s %-60s %-20s\n"
-#define MAX_TTL 64  // representing the maximum no. of network hops (IP_TTL)
+#define TR_LINE_FMT "%-5s %-60s %-20s\n"  // format to log hops, with padding
+#define MAX_TTL 64                        // maximum no. of network hops
 
 double time_now_ms(void);
 void usage(void);
@@ -101,7 +104,7 @@ int main(int argc, char **argv)
             double latency_ms = (recv_ms - send_ms) / 2;
             sprintf(latency_ms_str, "%f", latency_ms);
 
-            // Get the name of this hop, if available.
+            // Parse the IP address of the hop.
             const char *hop_addr = inet_ntoa(ip_hdr->ip_src);
             struct in_addr ip;
             if (inet_aton(hop_addr, &ip) == 0) {
@@ -111,6 +114,7 @@ int main(int argc, char **argv)
                 exit(1);
             }
 
+            // Get the name of this hop, if available.
             // NULL on error, in which case we don't log the hostname.
             struct hostent *he;
             if ((he = gethostbyaddr(&ip, sizeof(ip), AF_INET))) {
