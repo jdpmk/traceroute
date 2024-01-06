@@ -55,7 +55,7 @@ int main(int argc, char **argv)
 
     freeaddrinfo(res);
 
-    printf("traceroute to %s, (%d hops max)\n", host, MAX_TTL);
+    printf("traceroute to %s (%d hops max)\n", host, MAX_TTL);
     printf(TR_LINE_FMT, "Hop", "IP", "Time (ms)");
     printf(TR_LINE_FMT, "---", "--", "---------");
 
@@ -97,11 +97,11 @@ int main(int argc, char **argv)
             // Hop number is the same as current IP TTL.
             sprintf(hop_str, "%d", ttl);
 
-            // Latency: RTT / 2
+            // Latency is RTT / 2.
             double latency_ms = (recv_ms - send_ms) / 2;
             sprintf(latency_ms_str, "%f", latency_ms);
 
-            // Also display name of this hop.
+            // Display the name of this hop, if available.
             const char *hop_addr = inet_ntoa(ip_hdr->ip_src);
 
             struct in_addr ip;
