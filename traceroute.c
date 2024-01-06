@@ -101,11 +101,9 @@ int main(int argc, char **argv)
             double latency_ms = (recv_ms - send_ms) / 2;
             sprintf(latency_ms_str, "%f", latency_ms);
 
-            // Display the name of this hop, if available.
+            // Get the name of this hop, if available.
             const char *hop_addr = inet_ntoa(ip_hdr->ip_src);
-
             struct in_addr ip;
-            struct hostent *he;
             if (inet_aton(hop_addr, &ip) == 0) {
                 fprintf(stderr,
                         "ERROR: unable to interpret %s as an IP address",
@@ -113,9 +111,9 @@ int main(int argc, char **argv)
                 exit(1);
             }
 
-            // NULL on error, in which case we don't print the hostname.
-            he = gethostbyaddr(&ip, sizeof(ip), AF_INET);
-            if (he) {
+            // NULL on error, in which case we don't log the hostname.
+            struct hostent *he;
+            if ((he = gethostbyaddr(&ip, sizeof(ip), AF_INET))) {
                 sprintf(ip_str, "%s (%s)", hop_addr, he->h_name);
             } else {
                 sprintf(ip_str, "%s", hop_addr);
