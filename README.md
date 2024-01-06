@@ -17,7 +17,7 @@ Hop   IP                                                           Time (ms)
 1     192.168.1.1 (REDACTED)                                       1.277588
 2     REDACTED (REDACTED)                                          106.336548
 3     152.195.68.131 (ae-65.core1.nyb.edgecastcdn.net)             56.671997
-...
+...   ...                                                          ...
 6     152.195.68.131 (ae-65.core1.nyb.edgecastcdn.net)             252.158569
 7     93.184.216.34                                                131.640991
 ```
