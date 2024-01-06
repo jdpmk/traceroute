@@ -86,9 +86,11 @@ int main(int argc, char **argv)
             const char *src_addr = inet_ntoa(ip_hdr->ip_src);
             double rtt_ms = (recv_ms - send_ms) / 2;
             printf("%s %f\n", src_addr, rtt_ms);
-        }
 
-        // TODO: break when the host is reached
+            if (strcmp(src_addr, host) == 0) {
+                break;
+            }
+        }
     }
 
     close(sfd);
