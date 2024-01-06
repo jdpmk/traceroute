@@ -11,6 +11,9 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
+#define TR_LINE_FMT "%-15s %-20s %-20s\n"
+#define MAX_TTL 10  // representing the maximum no. of network hops (IP_TTL)
+
 double time_now_ms(void);
 void usage(void);
 
@@ -23,16 +26,15 @@ int main(int argc, char **argv)
 
     int sfd, rfd;
     if ((sfd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
-        perror("socket");
+        perror("socket (send)");
         exit(1);
     }
     if ((rfd = socket(AF_INET, SOCK_RAW, IPPROTO_ICMP)) == -1) {
-        perror("socket");
+        perror("socket (rcv)");
         exit(1);
     }
 
     const char *host = argv[1];
-    printf("traceroute to %s\n", host);
 
     struct addrinfo hints;
     memset(&hints, 0, sizeof(hints));
@@ -53,7 +55,9 @@ int main(int argc, char **argv)
 
     freeaddrinfo(res);
 
-    const int MAX_TTL = 10;
+    printf("traceroute to %s, (%d hops max)\n", host, MAX_TTL);
+    printf(TR_LINE_FMT, "Hop", "IP", "Time (ms)");
+
     for (int ttl = 1; ttl < MAX_TTL; ++ttl) {
         if (setsockopt(sfd, IPPROTO_IP, IP_TTL, &ttl, sizeof(ttl)) == -1) {
             perror("setsockopt");
@@ -67,6 +71,7 @@ int main(int argc, char **argv)
         }
         double send_ms = time_now_ms();
 
+        // TODO: 512 bytes is probably enough here.
         char buf[512];
         if (recv(rfd, buf, sizeof(buf), MSG_WAITALL) == -1) {
             perror("recv");
@@ -84,8 +89,15 @@ int main(int argc, char **argv)
 
         if (type == ICMP_TIMXCEED && code == ICMP_TIMXCEED_INTRANS) {
             const char *src_addr = inet_ntoa(ip_hdr->ip_src);
-            double rtt_ms = (recv_ms - send_ms) / 2;
-            printf("%s %f\n", src_addr, rtt_ms);
+            double latency_ms = (recv_ms - send_ms) / 2;
+
+            char hop_str[255] = {0};
+            char latency_ms_str[255] = {0};
+
+            sprintf(hop_str, "%d", ttl);
+            sprintf(latency_ms_str, "%f", latency_ms);
+
+            printf(TR_LINE_FMT, hop_str, src_addr, latency_ms_str);
 
             if (strcmp(src_addr, host) == 0) {
                 break;
