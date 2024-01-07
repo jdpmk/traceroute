@@ -1,5 +1,10 @@
+// traceroute.c
+// A traceroute program implementation in C.
+//
 // Joydeep Mukherjee
-// See LICENSE.md.
+// 2023/12/25
+//
+// For more information, please see README.md and LICENSE.md.
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -27,11 +32,17 @@ int main(int argc, char **argv)
         exit(1);
     }
 
-    int sfd, rfd;
+    // Setup sockets to send probe packets to the destination, and receive ICMP
+    // packets from each hop. The sending packet connects to the host port 80
+    // via TCP. This port is typically used for HTTP connections. We avoid UDP
+    // here for various reasons like firewalls, etc. See traceroute(8).
+    int sfd;
     if ((sfd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
         perror("socket (send)");
         exit(1);
     }
+
+    int rfd;
     if ((rfd = socket(AF_INET, SOCK_RAW, IPPROTO_ICMP)) == -1) {
         perror("socket (rcv)");
         exit(1);
@@ -63,12 +74,14 @@ int main(int argc, char **argv)
     printf(TR_LINE_FMT, "---", "--", "---------");
 
     for (int ttl = 1; ttl <= MAX_TTL; ++ttl) {
+        // Set the IP TTL.
         if (setsockopt(sfd, IPPROTO_IP, IP_TTL, &ttl, sizeof(ttl)) == -1) {
             perror("setsockopt");
             exit(1);
         }
 
-        // TODO: Implement retries.
+        // Send a null byte as a probe to the host, and await a response.
+        // TODO: Maybe implement retries, assuming ICMP packets may get lost?
         char probe = '\0';
         if (send(sfd, &probe, sizeof(probe), 0) == -1) {
             perror("send");
@@ -84,8 +97,9 @@ int main(int argc, char **argv)
         }
         double recv_ms = time_now_ms();
 
+        // Extract the ICMP header from the received response. We convert the
+        // IP header length from 32-bit words to bytes. See ip(4).
         struct ip *ip_hdr = (struct ip *) buf;
-        // Convert IP header length from 32-bit words to bytes. See ip(4).
         u_int ip_hlen = ip_hdr->ip_hl << 2;
         struct icmp *icmp_hdr = (struct icmp *) (buf + ip_hlen);
 
