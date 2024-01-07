@@ -15,8 +15,8 @@
 #include <netdb.h>
 #include <netinet/ip_icmp.h>
 #include <sys/errno.h>
-#include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/types.h>
 #include <unistd.h>
 
 #define TR_LINE_FMT "%-5s %-60s %-20s\n"  // format to log hops, with padding
@@ -33,9 +33,9 @@ int main(int argc, char **argv)
     }
 
     // Setup sockets to send probe packets to the destination, and receive ICMP
-    // packets from each hop. The sending packet connects to the host port 80
+    // packets from each hop. The sending socket connects to the host port 80
     // via TCP. This port is typically used for HTTP connections. We avoid UDP
-    // here for various reasons like firewalls, etc. See traceroute(8).
+    // here for various reasons including firewalls, etc. See traceroute(8).
     int sfd;
     if ((sfd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
         perror("socket (send)");
@@ -81,7 +81,6 @@ int main(int argc, char **argv)
         }
 
         // Send a null byte as a probe to the host, and await a response.
-        // TODO: Maybe implement retries, assuming ICMP packets may get lost?
         char probe = '\0';
         if (send(sfd, &probe, sizeof(probe), 0) == -1) {
             perror("send");
@@ -89,6 +88,8 @@ int main(int argc, char **argv)
         }
         double send_ms = time_now_ms();
 
+        // TODO: Maybe implement retries, assuming ICMP packets may get lost?
+        // Sometimes the program may hang on recv().
         // TODO: 512 bytes is probably enough here.
         char buf[512];
         if (recv(rfd, buf, sizeof(buf), MSG_WAITALL) == -1) {
